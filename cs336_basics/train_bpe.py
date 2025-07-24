@@ -2,7 +2,7 @@ import os
 import regex as re
 import multiprocessing
 import heapq
-from typing import List, Dict, Tuple, BinaryIO
+from typing import List, Dict, Tuple, BinaryIO, Union
 from collections import Counter
 
 PAT_STR_GPT2 = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
@@ -34,6 +34,7 @@ def find_chunk_boundaries(
     # Chunks start on previous index, don't include last index
     chunk_boundaries = [i * chunk_size for i in range(desired_num_chunks + 1)]
     chunk_boundaries[-1] = file_size
+    print(file_size)
 
     mini_chunk_size = 4096  # Read ahead by 4k bytes at a time
 
@@ -64,17 +65,18 @@ def tokenize_chunk(text_chunk):
     text_chunk = "".join(re.split(pattern_split, text_chunk))
     return Counter(re.findall(PAT_STR_GPT2, text_chunk))
 
-if __name__ == "__main__":
-    num_processes = os.cpu_count()
 
-    with open(CORPUS_FILE, "rb") as f:
+def pre_tokenize(input_path: str,
+                 num_processes: int) -> Dict[str, int]:
+    with open(input_path, "rb") as f:
         chunk_boundaries = find_chunk_boundaries(f, num_processes, ENDOFTEXT.encode('utf-8'))
         chunks = []
+        f.seek(0)
         for idx_chunk in range(len(chunk_boundaries) - 1):
             idx_chunk_start = chunk_boundaries[idx_chunk]
             idx_chunk_end = chunk_boundaries[idx_chunk + 1]
-            f.seek(idx_chunk_start)
             chunks.append(f.read(idx_chunk_end - idx_chunk_start).decode("utf-8", errors="ignore"))
+
 
     with multiprocessing.Pool(processes=num_processes) as pool:
         results = pool.map(tokenize_chunk, chunks)
@@ -82,18 +84,29 @@ if __name__ == "__main__":
     pretokenization_dict = results[0]
     for chunk_counter in results[1:]:
         pretokenization_dict.update(chunk_counter)
-        
+    return pretokenization_dict
+
+def train_bpe(input_path: str,
+              vocab_size: int,
+              special_tokens: List[str]) -> Tuple[Union[Dict, List]]:
+    num_processes = os.cpu_count()
+    pretokenization_dict = pre_tokenize(input_path, num_processes)
+
     print("Most common pre-tokens:")
     print(pretokenization_dict.most_common(10))
     print("Longest pre-tokens:")
     print(heapq.nlargest(10, pretokenization_dict, key=lambda x: len(x)))
 
-# def train_bpe(input_path: str,
-#               vocab_size: int,
-#               special_tokens: List[str]) -> Tuple[Union[Dict, List]]:
 
 
 
-#     return vocab, merges
+    # return vocab, merges
+
+if __name__ == "__main__":
+    train_bpe(CORPUS_FILE,
+              vocab_size=10000,
+              special_tokens=SPECIAL_TOKENS)
+
+
 
 
