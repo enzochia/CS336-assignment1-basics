@@ -2,6 +2,9 @@ import os
 import regex as re
 import multiprocessing
 import heapq
+import psutil
+import time
+import pickle
 from tqdm import tqdm
 from typing import List, Dict, Tuple, BinaryIO, Union
 from collections import Counter
@@ -9,9 +12,6 @@ from collections import Counter
 PAT_STR_GPT2 = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
 ENDOFTEXT = "<|endoftext|>"
 SPECIAL_TOKENS = ["<|endoftext|>"]
-# SPECIAL_TOKENS = ["<|endoftext|>".encode('utf-8')]
-# CORPUS_FILE = "data/TinyStoriesV2-GPT4-debug.txt"
-CORPUS_FILE = "data/TinyStoriesV2-GPT4-valid.txt"
 
 def find_chunk_boundaries(
     file: BinaryIO, 
@@ -222,6 +222,41 @@ def train_bpe(input_path: str,
 
 
 if __name__ == "__main__":
-    train_bpe(CORPUS_FILE,
-              vocab_size=10000,
-              special_tokens=SPECIAL_TOKENS)
+    # CORPUS_FILE = "data/TinyStoriesV2-GPT4-debug.txt"
+    # CORPUS_FILE = "data/TinyStoriesV2-GPT4-valid.txt"
+    CORPUS_FILE = "data/TinyStoriesV2-GPT4-train.txt"
+    VOCAB_SIZE = 10000
+
+    # CORPUS_FILE = "data/owt_train.txt"
+    # CORPUS_FILE = "data/owt_valid.txt"
+    # VOCAB_SIZE = 32000
+
+    process = psutil.Process(os.getpid())
+    start_mem = process.memory_info().rss / (1024 * 1024)  # in MB
+    start_time = time.time()
+
+    print(f"Starting BPE training with vocab size cap {VOCAB_SIZE}, on corpus file {CORPUS_FILE}")
+
+    vocab, merges = train_bpe(input_path=CORPUS_FILE,
+                              vocab_size=VOCAB_SIZE,
+                              special_tokens=SPECIAL_TOKENS)
+
+    end_mem = process.memory_info().rss / (1024 * 1024)  # in MB
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+
+    print(f"\nTraining Completed, and got actual vocab size: {len(vocab)}")
+
+    hours, rem = divmod(elapsed_time, 3600)
+    minutes, seconds = divmod(rem, 60)
+    print(f"Time Taken: {int(hours):02}:{int(minutes):02}:{seconds:05.2f}")
+    print(f"Memory consumed during training: {(end_mem - start_mem):.2f} MB")
+
+    print("Longest pre-tokens:")
+    print(list(x.decode("utf-8") for x in heapq.nlargest(10, vocab.values(), key=len)))
+
+    with open("data/ts/vocab.pkl", "wb") as f:
+        pickle.dump(vocab, f)
+    with open("data/ts/merges.pkl", "wb") as f:
+        pickle.dump(merges, f)
+    print("Saved 'vocab.pkl' and 'merges.pkl' under data/.")
