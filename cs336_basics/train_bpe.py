@@ -62,7 +62,11 @@ def find_chunk_boundaries(
     return sorted(set(chunk_boundaries))
 
 
-def tokenize_chunk(text_chunk: str) -> Dict[str, int]:
+def tokenize_chunk(args: Tuple[str, int, int]) -> Counter:
+    filepath, start_byte, end_byte = args
+    with open(filepath, "rb") as f:
+        f.seek(start_byte)
+        text_chunk = f.read(end_byte - start_byte).decode("utf-8", errors="ignore")
     escaped_tokens = [re.escape(token) for token in SPECIAL_TOKENS]
     pattern_split = "|".join(escaped_tokens)
     text_chunks = re.split(pattern_split, text_chunk)
@@ -77,15 +81,15 @@ def pre_tokenize(input_path: str,
                  num_processes: int) -> Dict[Tuple[bytes], int]:
     with open(input_path, "rb") as f:
         chunk_boundaries: List[int] = find_chunk_boundaries(f, num_processes, ENDOFTEXT.encode('utf-8'))
-        chunks: List[str] = []
+        chunks_to_process: List[Tuple[Any]] = []
         f.seek(0)
         for idx_chunk in range(len(chunk_boundaries) - 1):
             idx_chunk_start = chunk_boundaries[idx_chunk]
             idx_chunk_end = chunk_boundaries[idx_chunk + 1]
-            chunks.append(f.read(idx_chunk_end - idx_chunk_start).decode("utf-8", errors="ignore"))
+            chunks_to_process.append((input_path, idx_chunk_start, idx_chunk_end))
 
     with multiprocessing.Pool(processes=num_processes) as pool:
-        results: List[Dict[str, int]] = pool.map(tokenize_chunk, chunks)
+        results: List[Dict[str, int]] = pool.map(tokenize_chunk, chunks_to_process)
 
     pretokenization_dict: Dict[str, int] = results[0]
     for chunk_counter in results[1:]:
