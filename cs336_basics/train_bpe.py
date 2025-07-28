@@ -70,10 +70,11 @@ def tokenize_chunk(args: Tuple[str, int, int]) -> Counter:
     escaped_tokens = [re.escape(token) for token in SPECIAL_TOKENS]
     pattern_split = "|".join(escaped_tokens)
     text_chunks = re.split(pattern_split, text_chunk)
+    pretokenized_chunk = Counter()
     if text_chunks:
-        pretokenized_chunk = Counter(re.findall(PAT_STR_GPT2, text_chunks[0]))
-        for chunk in text_chunks[1:]:
-            pretokenized_chunk.update(Counter(re.findall(PAT_STR_GPT2, chunk)))
+        for chunk in text_chunks:
+            matches = re.finditer(PAT_STR_GPT2, chunk)
+            pretokenized_chunk.update(match.group(0) for match in matches)
     return pretokenized_chunk
 
 
@@ -228,12 +229,14 @@ def train_bpe(input_path: str,
 if __name__ == "__main__":
     # CORPUS_FILE = "data/TinyStoriesV2-GPT4-debug.txt"
     # CORPUS_FILE = "data/TinyStoriesV2-GPT4-valid.txt"
-    CORPUS_FILE = "data/TinyStoriesV2-GPT4-train.txt"
-    VOCAB_SIZE = 10000
+    # CORPUS_FILE = "data/TinyStoriesV2-GPT4-train.txt"
+    # VOCAB_SIZE = 10000
+    # OUTPUT_PATH = "data/ts/"
 
-    # CORPUS_FILE = "data/owt_train.txt"
     # CORPUS_FILE = "data/owt_valid.txt"
-    # VOCAB_SIZE = 32000
+    CORPUS_FILE = "data/owt_train.txt"
+    VOCAB_SIZE = 32000
+    OUTPUT_PATH = "data/owt/"
 
     process = psutil.Process(os.getpid())
     start_mem = process.memory_info().rss / (1024 * 1024)  # in MB
@@ -259,8 +262,8 @@ if __name__ == "__main__":
     print("Longest pre-tokens:")
     print(list(x.decode("utf-8") for x in heapq.nlargest(10, vocab.values(), key=len)))
 
-    with open("data/ts/vocab.pkl", "wb") as f:
+    with open(OUTPUT_PATH + "vocab.pkl", "wb") as f:
         pickle.dump(vocab, f)
-    with open("data/ts/merges.pkl", "wb") as f:
+    with open(OUTPUT_PATH + "merges.pkl", "wb") as f:
         pickle.dump(merges, f)
     print("Saved 'vocab.pkl' and 'merges.pkl' under data/.")
