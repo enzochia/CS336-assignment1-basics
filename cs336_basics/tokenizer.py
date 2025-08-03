@@ -5,7 +5,7 @@ import json
 from typing import BinaryIO, Dict, List, Tuple, Iterable
 from collections.abc import Iterator
 from cs336_basics.utils.constants import PAT_STR_GPT2, ENDOFTEXT, SPECIAL_TOKENS
-from cs336_basics.train_bpe import _add_bytes_in_tuple
+from cs336_basics.train_bpe import _add_bytes_in_tuple, read_and_convert_bpe_vocab_and_merges
 
 class Tokenizer:
     def __init__(self, 
@@ -33,10 +33,7 @@ class Tokenizer:
                    vocab_filepath: str,
                    merges_filepath: str,
                    special_tokens: List[str] = None):
-        with open(vocab_filepath, "rb") as f:
-            vocab = pickle.load(f)
-        with open(merges_filepath, "rb") as f:
-            merges = pickle.load(f)    
+        vocab, merges = read_and_convert_bpe_vocab_and_merges(vocab_filepath, merges_filepath)
         return cls(vocab, merges, special_tokens)
 
     def _collapse_pretoken(self,
@@ -118,12 +115,12 @@ class Tokenizer:
 
 if __name__ == "__main__":
     BPE_DIR = "data/ts/"
-    INPUT_FILE = "data/TinyStoriesV2-GPT4-train.txt"
-    # INPUT_FILE = "data/TinyStoriesV2-GPT4-debug.txt"
-    INPUT_FILE = "data/TinyStoriesV2-GPT4-valid.txt"
+    # INPUT_FILE = "data/TinyStoriesV2-GPT4-train.txt"
+    INPUT_FILE = "data/TinyStoriesV2-GPT4-debug.txt"
+    # INPUT_FILE = "data/TinyStoriesV2-GPT4-valid.txt"
 
-    VOCAB_PATH = os.path.join(BPE_DIR, "vocab.pkl")
-    MERGES_PATH = os.path.join(BPE_DIR, "merges.pkl")
+    VOCAB_PATH = os.path.join(BPE_DIR, "vocab.json")
+    MERGES_PATH = os.path.join(BPE_DIR, "merges.txt")
     ENCODED_OUTPUT_FILE = os.path.join(BPE_DIR, "encoded_output.txt")
 
     SPECIAL_TOKEN_TO_SPLIT_BY = "<|endoftext|>"
@@ -137,11 +134,14 @@ if __name__ == "__main__":
             special_tokens=SPECIAL_TOKENS
         )
 
+    # list_to_decode: List[int] = []
     with open(INPUT_FILE, "r", encoding="utf-8", errors="ignore") as infile, \
             open(ENCODED_OUTPUT_FILE, "w", encoding="utf-8") as outfile:
         chunk_generator = tokenizer.read_file_in_chunks(infile, SPECIAL_TOKEN_TO_SPLIT_BY)
         token_generator = tokenizer.encode_iterable(chunk_generator)
         for token_id in token_generator:
             outfile.write(str(token_id) + " ")
+            # list_to_decode.append(token_id)
     print(f"Encoded file to '{ENCODED_OUTPUT_FILE}'.")
 
+    # print(tokenizer.decode(list_to_decode))
