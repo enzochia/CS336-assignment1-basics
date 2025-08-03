@@ -1,5 +1,8 @@
 import json
+import numpy as np
+from tqdm import tqdm
 from cs336_basics.tokenizer import *
+from cs336_basics.utils.tokenizer_utils import encode_and_dump
 
 
 if __name__ == "__main__":
@@ -10,8 +13,7 @@ if __name__ == "__main__":
 
     VOCAB_PATH = os.path.join(BPE_DIR, "vocab.json")
     MERGES_PATH = os.path.join(BPE_DIR, "merges.txt")
-    ENCODED_OUTPUT_FILE = os.path.join(BPE_DIR, "encoded_output.txt")
-
+    ENCODED_OUTPUT_FILE = os.path.join(BPE_DIR, "tokenized_corpus.bin")
     SPECIAL_TOKEN_TO_SPLIT_BY = "<|endoftext|>"
 
     if not os.path.exists(VOCAB_PATH) or not os.path.exists(MERGES_PATH):
@@ -23,14 +25,13 @@ if __name__ == "__main__":
             special_tokens=SPECIAL_TOKENS
         )
 
-    # list_to_decode: List[int] = []
-    with open(INPUT_FILE, "r", encoding="utf-8", errors="ignore") as infile, \
-            open(ENCODED_OUTPUT_FILE, "w", encoding="utf-8") as outfile:
-        chunk_generator = tokenizer.read_file_in_chunks(infile, SPECIAL_TOKEN_TO_SPLIT_BY)
-        token_generator = tokenizer.encode_iterable(chunk_generator)
-        for token_id in token_generator:
-            outfile.write(str(token_id) + " ")
-            # list_to_decode.append(token_id)
-    print(f"Encoded file to '{ENCODED_OUTPUT_FILE}'.")
+    encode_and_dump(INPUT_FILE, 
+                    ENCODED_OUTPUT_FILE,
+                    tokenizer, 
+                    SPECIAL_TOKEN_TO_SPLIT_BY)
 
-    # print(tokenizer.decode(list_to_decode))
+    print(f"################# Read from output .bin file and decode to validate. #################")
+    encoded_tokens_from_file = np.memmap(ENCODED_OUTPUT_FILE, dtype=np.uint16, mode='r')
+    sample_ids = encoded_tokens_from_file[:500].tolist()
+    decoded_text_sample = tokenizer.decode(sample_ids)
+    print(decoded_text_sample)
