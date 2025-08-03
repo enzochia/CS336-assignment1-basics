@@ -1,8 +1,14 @@
 import os
 import time
 import json
+import logging
 from cs336_basics.train_bpe import *
+from cs336_basics.utils.utils import log_runtime
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 if __name__ == "__main__":
     # CORPUS_FILE = "data/TinyStoriesV2-GPT4-debug.txt"
@@ -17,26 +23,16 @@ if __name__ == "__main__":
     # OUTPUT_PATH = "data/owt/"
 
     start_time = time.time()
-
-    print(f"Starting BPE training with vocab size cap {VOCAB_SIZE}, on corpus file {CORPUS_FILE}")
-
     vocab, merges = train_bpe(input_path=CORPUS_FILE,
                               vocab_size=VOCAB_SIZE,
                               special_tokens=SPECIAL_TOKENS)
-
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-
-    print(f"\nTraining Completed, and got actual vocab size: {len(vocab)}")
-
-    hours, rem = divmod(elapsed_time, 3600)
-    minutes, seconds = divmod(rem, 60)
-    print(f"Time Taken: {int(hours):02}:{int(minutes):02}:{seconds:05.2f}")
-
-    print("Longest pre-tokens:")
-    print(list(x.decode("utf-8") for x in heapq.nlargest(10, vocab.values(), key=len)))
+    log_runtime(start_time, time.time(), "training the BPE tokenzier")
 
     convert_and_save_bpe_vocab_and_merges(vocab,
                                           merges,
                                           OUTPUT_PATH + "vocab.json",
                                           OUTPUT_PATH + "merges.txt")
+
+    logging.info(f"Trained a BPE tokenizer on corpus file {CORPUS_FILE} with vocab size cap {VOCAB_SIZE} and got actual vocab size: {len(vocab)}.\
+                 Vocab and merges file saved under {OUTPUT_PATH}")
+    logging.info(f"Longest pre-tokens: {list(x.decode("utf-8") for x in heapq.nlargest(10, vocab.values(), key=len))}")
