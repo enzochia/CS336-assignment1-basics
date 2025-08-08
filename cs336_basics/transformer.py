@@ -106,3 +106,62 @@ class RMSNorm(nn.Module):
 
     def extra_repr(self) -> str:
         return f"d_model={self.d_model}, eps={self.eps}"
+
+
+class Swiglu(nn.Module):
+    def __init__(
+        self,
+        d_model: int,
+        d_ff: int,
+        device: torch.device | None = None,
+        dtype: torch.dtype | None = None
+    ) -> None:
+        factory_kwargs = {"device": device, "dtype": dtype}
+        super().__init__()
+        self.d_model = d_model
+        self.d_ff = d_ff
+        self.w1 = Parameter(torch.empty(d_ff, d_model, **factory_kwargs))
+        self.w2 = Parameter(torch.empty(d_model, d_ff, **factory_kwargs))
+        self.w3 = Parameter(torch.empty(d_ff, d_model, **factory_kwargs))
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        std_dev = math.sqrt(2 / (self.d_model + self.d_ff))
+        nn.init.trunc_normal_(
+            self.w1, 
+            mean=0.0, 
+            std=std_dev, 
+            a=-3 * std_dev, 
+            b=3 * std_dev
+        )
+        nn.init.trunc_normal_(
+            self.w2, 
+            mean=0.0, 
+            std=std_dev, 
+            a=-3 * std_dev, 
+            b=3 * std_dev
+        )
+        nn.init.trunc_normal_(
+            self.w3, 
+            mean=0.0, 
+            std=std_dev, 
+            a=-3 * std_dev, 
+            b=3 * std_dev
+        )
+
+    def forward(
+        self,
+        x: torch.Tensor
+    ) -> torch.Tensor:
+        # batch_size x seq_len x d_model * d_model x d_ff
+        w1_x = torch.matmul(x, self.w1.transpose(0, 1))
+        sigmoid_w1x = torch.sigmoid(w1_x)
+        silu = w1_x * sigmoid_w1x
+        # batch_size x seq_len x d_model * d_model x d_ff
+        silu_w3x = silu * torch.matmul(x, self.w3.transpose(0, 1))
+        # batch_size x seq_len x d_ff * d_ff x d_model
+        swiglu = torch.matmul(silu_w3x, self.w2.transpose(0, 1))
+        return swiglu
+
+    def extra_repr(self) -> str:
+        return f"d_model={self.d_model}, d_ff={self.d_ff}"
