@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import math
 from torch.nn.parameter import Parameter
+from typing import Optional
 
 
 def softmax(x: torch.Tensor,
@@ -10,6 +11,45 @@ def softmax(x: torch.Tensor,
     x_exp = torch.exp(x)
     x_softmax = x_exp / torch.sum(x_exp, dim=dim, keepdim=True)
     return x_softmax
+
+
+def scaled_dot_product_attention(
+    q: torch.Tensor,
+    k: torch.Tensor,
+    v: torch.Tensor,
+    attn_mask: Optional[torch.Tensor] | None = None,
+    is_causal: Optional[bool] = False
+) -> torch.Tensor:
+    """
+    Input
+    q: [batch_size, ..., seq_len, d_k]
+    k: [batch_size, ..., seq_len, d_k]
+    v: [batch_size, ..., seq_len, d_v]
+    attn_mask: [seq_len, seq_len]
+    Output
+    o: [batch_size, ..., seq_len, d_v]
+    Note
+    This attn_mask is not for padding
+    """
+    seq_len = q.size(-2)
+    d_k = q.size(-1)
+    # [batch_size, ..., seq_len, seq_len]
+    q_k_scaled_dot_prod = torch.matmul(q, k.transpose(-1, -2)) / math.sqrt(d_k)
+
+    if is_causal:
+        causal_mask = torch.ones(seq_len, seq_len).tril(diagonal=0)
+        q_k_scaled_dot_prod.masked_fill_(causal_mask.logical_not(), float("-inf"))
+
+    if attn_mask is not None:
+        q_k_scaled_dot_prod.masked_fill_(attn_mask.logical_not(), float("-inf"))
+    
+    # [batch_size, ..., seq_len, seq_len]
+    attn_weight = softmax(q_k_scaled_dot_prod)
+    # [batch_size, ..., seq_len, d_v]
+    o = torch.matmul(attn_weight, v)
+    return o
+
+
 
 
 
