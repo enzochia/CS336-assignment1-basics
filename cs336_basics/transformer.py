@@ -159,7 +159,7 @@ class RMSNorm(nn.Module):
         return f"d_model={self.d_model}, eps={self.eps}"
 
 
-class Swiglu(nn.Module):
+class SwiGLU(nn.Module):
     def __init__(
         self,
         d_model: int,
@@ -204,13 +204,13 @@ class Swiglu(nn.Module):
         self,
         x: torch.Tensor
     ) -> torch.Tensor:
-        # batch_size x seq_len x d_model * d_model x d_ff
+        # [..., d_model] * [d_model, d_ff]
         w1_x = torch.matmul(x, self.w1.transpose(0, 1))
         sigmoid_w1x = torch.sigmoid(w1_x)
         silu = w1_x * sigmoid_w1x
-        # batch_size x seq_len x d_model * d_model x d_ff
+        # [..., d_model] * [d_model, d_ff]
         silu_w3x = silu * torch.matmul(x, self.w3.transpose(0, 1))
-        # batch_size x seq_len x d_ff * d_ff x d_model
+        # [..., d_ff] * [d_ff, d_model]
         swiglu = torch.matmul(silu_w3x, self.w2.transpose(0, 1))
         return swiglu
 
@@ -298,7 +298,7 @@ class MultiheadAttention(nn.Module):
         self.q_proj = Linear(d_model, d_model, **factory_kwargs)
         self.k_proj = Linear(d_model, d_model, **factory_kwargs)
         self.v_proj = Linear(d_model, d_model, **factory_kwargs)
-        self.o_proj = Linear(d_model, d_model, **factory_kwargs)
+        self.output_proj = Linear(d_model, d_model, **factory_kwargs)
 
     def forward(
         self,
@@ -321,5 +321,50 @@ class MultiheadAttention(nn.Module):
         output = scaled_dot_product_attention(q=q, k=k, v=v, is_causal=True)
         # [batch_size, seq_len, d_model]
         output = output.transpose(-2, -3).contiguous().view(*dims, -1)
-        output = self.o_proj(output)
+        output = self.output_proj(output)
         return output
+
+
+class TransformerBlock(nn.Module):
+    def __init__(
+        self,
+        d_model: int,
+        num_heads: int,
+        d_ff: int,
+        theta: int | None = 10000,
+        max_seq_len: int | None = 8192,
+        rope: RotaryPositionalEmbedding | None = None,
+        device: torch.device | None = None,
+        dtype: torch.dtype | None = None
+    ) -> None:
+        factory_kwargs = {"device": device, "dtype": dtype}
+        super().__init__()
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.d_ff = d_ff
+        self.theta = theta
+        self.max_seq_len = max_seq_len
+        if self.theta is not None:
+            assert rope is None
+            rope = RotaryPositionalEmbedding(theta=theta, 
+                                             d_k=d_model // num_heads, 
+                                             max_seq_len=max_seq_len, 
+                                             **factory_kwargs)
+        self.rope = rope
+        self.ln1 = RMSNorm(d_model=d_model)
+        self.attn = (
+            MultiheadAttention(d_model=d_model, num_heads=num_heads, rope=self.rope) 
+            if self.rope is not None else
+            MultiheadAttention(d_model=d_model, num_heads=num_heads) 
+        )
+        self.ln2 = RMSNorm(d_model=d_model)
+        self.ffn = SwiGLU(d_model=d_model, d_ff=d_ff)
+
+    def forward(
+        self,
+        x: torch.Tensor
+    ) -> torch.Tensor:
+        x += self.attn(x=self.ln1(x),
+                                    is_causal=True)
+        x += self.ffn(x=self.ln2(x))
+        return x

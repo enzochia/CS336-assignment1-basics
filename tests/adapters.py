@@ -14,11 +14,12 @@ from cs336_basics.transformer import (
     Linear, 
     Embedding, 
     RMSNorm, 
-    Swiglu, 
+    SwiGLU, 
     RotaryPositionalEmbedding, 
     softmax, 
     scaled_dot_product_attention, 
-    MultiheadAttention
+    MultiheadAttention,
+    TransformerBlock
 )
 
 
@@ -100,7 +101,7 @@ def run_swiglu(
     # swiglu.w1.weight.data = w1_weight
     # swiglu.w2.weight.data = w2_weight
     # swiglu.w3.weight.data = w3_weight
-    swiglu = Swiglu(
+    swiglu = SwiGLU(
         d_model=d_model,
         d_ff=d_ff
     )
@@ -306,7 +307,23 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    raise NotImplementedError
+    transformerblock = TransformerBlock(d_model=d_model,
+                                        num_heads=num_heads,
+                                        d_ff=d_ff,
+                                        max_seq_len=max_seq_len,
+                                        theta=theta)
+    weight_keys_to_replace = {"ffn.w1.weight": "ffn.w1",
+                              "ffn.w2.weight": "ffn.w2",
+                              "ffn.w3.weight": "ffn.w3"}
+    key_list = list(weights.keys())
+    for k in key_list:
+        if k in weight_keys_to_replace:
+            weights[weight_keys_to_replace[k]] = weights[k]
+            weights.pop(k)
+    for k in weights.keys():
+        print(k)
+    transformerblock.load_state_dict(weights)
+    return transformerblock(in_features)
 
 
 def run_transformer_lm(
