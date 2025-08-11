@@ -171,47 +171,22 @@ class SwiGLU(nn.Module):
         super().__init__()
         self.d_model = d_model
         self.d_ff = d_ff
-        self.w1 = Parameter(torch.empty(d_ff, d_model, **factory_kwargs))
-        self.w2 = Parameter(torch.empty(d_model, d_ff, **factory_kwargs))
-        self.w3 = Parameter(torch.empty(d_ff, d_model, **factory_kwargs))
-        self.reset_parameters()
-
-    def reset_parameters(self) -> None:
-        std_dev = math.sqrt(2 / (self.d_model + self.d_ff))
-        nn.init.trunc_normal_(
-            self.w1, 
-            mean=0.0, 
-            std=std_dev, 
-            a=-3 * std_dev, 
-            b=3 * std_dev
-        )
-        nn.init.trunc_normal_(
-            self.w2, 
-            mean=0.0, 
-            std=std_dev, 
-            a=-3 * std_dev, 
-            b=3 * std_dev
-        )
-        nn.init.trunc_normal_(
-            self.w3, 
-            mean=0.0, 
-            std=std_dev, 
-            a=-3 * std_dev, 
-            b=3 * std_dev
-        )
-
+        self.w1 = Linear(in_features=d_model, out_features=d_ff, **factory_kwargs)
+        self.w2 = Linear(in_features=d_ff, out_features=d_model, **factory_kwargs)
+        self.w3 = Linear(in_features=d_model, out_features=d_ff, **factory_kwargs)
+        
     def forward(
         self,
         x: torch.Tensor
     ) -> torch.Tensor:
-        # [..., d_model] * [d_model, d_ff]
-        w1_x = torch.matmul(x, self.w1.transpose(0, 1))
+        # [..., d_ff]
+        w1_x = self.w1(x)
         sigmoid_w1x = torch.sigmoid(w1_x)
         silu = w1_x * sigmoid_w1x
-        # [..., d_model] * [d_model, d_ff]
-        silu_w3x = silu * torch.matmul(x, self.w3.transpose(0, 1))
-        # [..., d_ff] * [d_ff, d_model]
-        swiglu = torch.matmul(silu_w3x, self.w2.transpose(0, 1))
+        # [..., d_ff]
+        silu_w3x = silu * self.w3(x)
+        # [..., d_model]
+        swiglu = self.w2(silu_w3x)
         return swiglu
 
     def extra_repr(self) -> str:
@@ -368,3 +343,28 @@ class TransformerBlock(nn.Module):
                                     is_causal=True)
         x += self.ffn(x=self.ln2(x))
         return x
+
+
+# class TransformerLM(nn.Module):
+#     def __init__(
+#         self,
+#         vocab_size: int,
+#         context_length: int,
+#         d_model: int,
+#         num_layers: int,
+#         num_heads: int,
+#         d_ff: int,
+#         rope_theta: float
+#     ) -> None:
+#         super().__init__()
+#         self.vocab_size = vocab_size
+#         self.context_length = context_length
+#         self.d_model = d_model
+#         self.num_layers = num_layers
+#         self.num_heads = num_heads
+#         self.d_ff = d_ff
+#         self.rope_theta = rope_theta
+#         self.token_embeddings = nn.embedding(vocab_size, d_model)
+
+
+

@@ -105,7 +105,7 @@ def run_swiglu(
         d_model=d_model,
         d_ff=d_ff
     )
-    swiglu.load_state_dict({"w1": w1_weight, "w2": w2_weight, "w3": w3_weight})
+    swiglu.load_state_dict({"w1.weight": w1_weight, "w2.weight": w2_weight, "w3.weight": w3_weight})
     return swiglu(in_features)
 
 
@@ -165,7 +165,7 @@ def run_multihead_self_attention(
     multiheadattention.load_state_dict({"q_proj.weight": q_proj_weight,
                                         "k_proj.weight": k_proj_weight,
                                         "v_proj.weight": v_proj_weight,
-                                        "o_proj.weight": o_proj_weight,})
+                                        "output_proj.weight": o_proj_weight,})
     return multiheadattention(in_features)
 
 
@@ -210,7 +210,7 @@ def run_multihead_self_attention_with_rope(
     multiheadattention.load_state_dict({"q_proj.weight": q_proj_weight,
                                         "k_proj.weight": k_proj_weight,
                                         "v_proj.weight": v_proj_weight,
-                                        "o_proj.weight": o_proj_weight,})
+                                        "output_proj.weight": o_proj_weight,})
     return multiheadattention(x=in_features, token_positions=token_positions)
 
 
@@ -312,16 +312,6 @@ def run_transformer_block(
                                         d_ff=d_ff,
                                         max_seq_len=max_seq_len,
                                         theta=theta)
-    weight_keys_to_replace = {"ffn.w1.weight": "ffn.w1",
-                              "ffn.w2.weight": "ffn.w2",
-                              "ffn.w3.weight": "ffn.w3"}
-    key_list = list(weights.keys())
-    for k in key_list:
-        if k in weight_keys_to_replace:
-            weights[weight_keys_to_replace[k]] = weights[k]
-            weights.pop(k)
-    for k in weights.keys():
-        print(k)
     transformerblock.load_state_dict(weights)
     return transformerblock(in_features)
 
