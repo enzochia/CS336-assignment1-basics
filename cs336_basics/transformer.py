@@ -37,6 +37,8 @@ def scaled_dot_product_attention(
     q_k_scaled_dot_prod = torch.matmul(q, k.transpose(-1, -2)) / math.sqrt(d_k)
 
     if is_causal:
+        if attn_mask is not None:
+            raise ValueError(f"causal_mask is generated only when attn_mask is None.")
         causal_mask = torch.ones(seq_len, seq_len).tril(diagonal=0)
         q_k_scaled_dot_prod.masked_fill_(causal_mask.logical_not(), float("-inf"))
 
@@ -246,27 +248,78 @@ class RotaryPositionalEmbedding(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        token_positions: torch.Tensor
+        token_positions: torch.Tensor | None = None
     ) -> torch.Tensor:
-        """
-        This is for single-head query and key matrices.
-        """
-        # [batch_size, seq_len, d]
-        seq_len= x.size(1)
+        batch_dim_ones = [1] * (len(x.size()) - 2)
+        # [batch_size, ..., seq_len, d]
+        seq_len= x.size(-2)
         # [seq_len, d // 2, 2]
         cos_sin_cache = self.rope_cos_sin_cache[:seq_len] if token_positions is None \
                         else self.rope_cos_sin_cache[token_positions]
-        # [batch_size, seq_len, d // 2, 2]
+        # [batch_size, ..., seq_len, d // 2, 2]
         x_to_rotate = x.view(*x.shape[:-1], -1, 2)
-        # [1, seq_len, 1, d // 2, 2]
-        cos_sin_cache = cos_sin_cache.view(1, seq_len, -1, 2)
-        # [batch_size, seq_len, d]
+        # [1, ..., seq_len, d // 2, 2]
+        cos_sin_cache = cos_sin_cache.view(*batch_dim_ones, seq_len, -1, 2)
+        # [batch_size, ..., seq_len, d]
         x_rotated = torch.stack(
             [
                 x_to_rotate[..., 0] * cos_sin_cache[..., 0] - x_to_rotate[..., 1] * cos_sin_cache[..., 1],
                 x_to_rotate[..., 0] * cos_sin_cache[..., 1] + x_to_rotate[..., 1] * cos_sin_cache[..., 0]
             ],
             dim=-1
-        ).flatten(start_dim=2)
+        ).flatten(start_dim=-2)
         return x_rotated
     
+
+
+class MultiheadAttention(nn.Module):
+    def __init__(
+        self,
+        d_model: int,
+        num_heads: int,
+        rope: RotaryPositionalEmbedding | None = None,
+        theta: float | None = None,
+        max_seq_len: int | None = None,
+        device: torch.device | None = None,
+        dtype: torch.dtype | None = None
+    ) -> None:
+        assert d_model > 0 and num_heads > 0
+        factory_kwargs = {"device": device, "dtype": dtype}
+        super().__init__()
+        self.d_k = d_model // num_heads
+        self.theta = theta
+        self.max_seq_len = max_seq_len
+        if self.theta is not None:
+            assert rope is None
+            rope = RotaryPositionalEmbedding(theta, self.d_k, max_seq_len, **factory_kwargs)
+        self.rope = rope
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.q_proj = Linear(d_model, d_model, **factory_kwargs)
+        self.k_proj = Linear(d_model, d_model, **factory_kwargs)
+        self.v_proj = Linear(d_model, d_model, **factory_kwargs)
+        self.o_proj = Linear(d_model, d_model, **factory_kwargs)
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        padding_mask: Optional[torch.Tensor] | None = None,
+        attn_mask: Optional[torch.Tensor] | None = None,
+        is_causal: bool = False,
+        token_positions: torch.Tensor | None = None
+    ) -> torch.Tensor:
+        # batch_size, seq_len
+        dims = x.size()[:-1]
+        # [batch_size, num_heads, seq_len, d_k]
+        q = self.q_proj(x).view(*dims, self.num_heads, -1).transpose(-2, -3).contiguous()
+        k = self.k_proj(x).view(*dims, self.num_heads, -1).transpose(-2, -3).contiguous()
+        v = self.v_proj(x).view(*dims, self.num_heads, -1).transpose(-2, -3)
+        if self.rope is not None:
+            # [batch_size, num_heads, seq_len, d_k]
+            q = self.rope(x=q, token_positions=token_positions)
+            k = self.rope(x=k, token_positions=token_positions)
+        output = scaled_dot_product_attention(q=q, k=k, v=v, is_causal=True)
+        # [batch_size, seq_len, d_model]
+        output = output.transpose(-2, -3).contiguous().view(*dims, -1)
+        output = self.o_proj(output)
+        return output
