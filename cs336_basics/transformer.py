@@ -85,7 +85,7 @@ class Linear(nn.Module):
         self,
         x: torch.Tensor
     ) -> torch.Tensor:
-        # batch_size x seq_len x input_dim * input_dim x output_dim
+        # [..., input_dim] * [input_dim, output_dim]
         return torch.matmul(x, self.weight.transpose(0, 1)).squeeze(-1)
 
     def extra_repr(self) -> str:
@@ -339,32 +339,49 @@ class TransformerBlock(nn.Module):
         self,
         x: torch.Tensor
     ) -> torch.Tensor:
-        x += self.attn(x=self.ln1(x),
-                                    is_causal=True)
+        x += self.attn(x=self.ln1(x), is_causal=True)
         x += self.ffn(x=self.ln2(x))
         return x
 
 
-# class TransformerLM(nn.Module):
-#     def __init__(
-#         self,
-#         vocab_size: int,
-#         context_length: int,
-#         d_model: int,
-#         num_layers: int,
-#         num_heads: int,
-#         d_ff: int,
-#         rope_theta: float
-#     ) -> None:
-#         super().__init__()
-#         self.vocab_size = vocab_size
-#         self.context_length = context_length
-#         self.d_model = d_model
-#         self.num_layers = num_layers
-#         self.num_heads = num_heads
-#         self.d_ff = d_ff
-#         self.rope_theta = rope_theta
-#         self.token_embeddings = nn.embedding(vocab_size, d_model)
+class TransformerLM(nn.Module):
+    def __init__(
+        self,
+        vocab_size: int,
+        context_length: int,
+        d_model: int,
+        num_layers: int,
+        num_heads: int,
+        d_ff: int,
+        rope_theta: float
+    ) -> None:
+        super().__init__()
+        self.vocab_size = vocab_size
+        self.context_length = context_length
+        self.d_model = d_model
+        self.num_layers = num_layers
+        self.num_heads = num_heads
+        self.d_ff = d_ff
+        self.rope_theta = rope_theta
+        self.token_embeddings = Embedding(vocab_size, d_model)
+        self.layers = nn.ModuleList([
+            TransformerBlock(d_model=d_model, num_heads=num_heads, d_ff=d_ff, theta=rope_theta, max_seq_len=context_length)
+            for _ in range(num_layers)
+        ])
+        self.ln_final = RMSNorm(d_model)
+        self.lm_head = Linear(d_model, vocab_size)
+
+    def forward(
+        self,
+        token_ids: torch.Tensor
+    ) -> torch.Tensor:
+        x = self.token_embeddings(token_ids)
+        for layer in self.layers:
+            x = layer(x)
+        x = self.ln_final(x)
+        x = self.lm_head(x)
+        return x
+
 
 
 
