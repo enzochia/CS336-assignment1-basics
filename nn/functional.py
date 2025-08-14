@@ -48,3 +48,18 @@ def scaled_dot_product_attention(
     # [batch_size, ..., seq_len, d_v]
     o = torch.matmul(attn_weight, v)
     return o
+
+
+def _logsumexp(input: torch.Tensor) -> torch.Tensor:
+    # [..., 1]
+    input_max, _ = torch.max(input, dim=-1, keepdim=True)
+    input -= input_max
+    return input_max + torch.log(torch.sum(torch.exp(input), dim=-1, keepdim=True))
+
+def cross_entropy(input: torch.Tensor,
+                  targets: torch.Tensor) -> torch.Tensor:
+    # [batch_size, ..., 1]
+    negative_log_prob = - torch.gather(input, dim=-1, index=targets.unsqueeze(-1)) + \
+                        _logsumexp(input)
+
+    return negative_log_prob.mean()

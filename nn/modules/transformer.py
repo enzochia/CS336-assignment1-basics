@@ -86,6 +86,7 @@ class TransformerLM(nn.Module):
         for layer in self.layers:
             x = layer(x)
         x = self.ln_final(x)
+        # [batch_size, seq_len, vocab_size]
         x = self.lm_head(x)
         return x
 
