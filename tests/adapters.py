@@ -10,20 +10,8 @@ import torch
 from torch import Tensor
 from cs336_basics.train_bpe import train_bpe
 from cs336_basics.tokenizer import Tokenizer
-from cs336_basics.transformer import (
-    Linear, 
-    Embedding, 
-    RMSNorm, 
-    SwiGLU, 
-    RotaryPositionalEmbedding, 
-    softmax, 
-    scaled_dot_product_attention, 
-    MultiheadAttention,
-    TransformerBlock,
-    TransformerLM
-)
 
-
+from nn import *
 
 def run_linear(
     d_in: int,
