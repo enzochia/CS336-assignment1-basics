@@ -1,5 +1,5 @@
 from collections.abc import Callable, Iterable
-from typing import Optional, Union, Any, TypeAlias
+from typing import Optional, Union, Any, TypeAlias, List
 import torch
 import torch.optim as optim
 import math
@@ -31,6 +31,12 @@ class AdamW(optim.Optimizer):
                     "weight_decay": weight_decay,
                     "eps": eps}
         super().__init__(params, defaults)
+
+    def set_lr(self,
+               lr: Union[float, torch.Tensor]
+        ) -> None:
+        for group in self.param_groups:
+            group["lr"] = lr
 
     def step(self, closure: Optional[Callable] = None):
         loss = None if closure is None else closure()

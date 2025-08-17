@@ -30,15 +30,16 @@ def get_batch(x: np.ndarray,
 
 class Dataset:
     def __init__(
-        path: str,
+        self,
+        data_path: str,
         batch_size: int,
         context_length: int,
         device: torch.device | None = torch.device("mps"),
         dtype: torch.dtype | None = np.int64,
         sampling_mode: str = "random"
     ) -> None:
-        self.train_data = np.memmap(f"{path}/train.bin", dtype=np.uint16, mode="r").astype(np.int64)
-        self.val_data = np.memmap(f"{path}/val.bin", dtype=np.uint16, mode="r").astype(np.int64)
+        self.train_data = np.memmap(f"{data_path}/train.bin", dtype=np.uint16, mode="r").astype(np.int64)
+        self.val_data = np.memmap(f"{data_path}/val.bin", dtype=np.uint16, mode="r").astype(np.int64)
         self.batch_size = batch_size
         self.context_length = context_length
         self.device = device
@@ -76,6 +77,3 @@ class Dataset:
                              start_idx=start_idx_orig)
         else:
             raise ValueError("Wrong sampling_mode string.")
-
-        
-

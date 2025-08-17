@@ -35,9 +35,9 @@ class TransformerBlock(nn.Module):
         self.rope = rope
         self.ln1 = RMSNorm(d_model=d_model)
         self.attn = (
-            MultiheadAttention(d_model=d_model, num_heads=num_heads, rope=self.rope) 
+            MultiheadAttention(d_model=d_model, num_heads=num_heads, rope=self.rope, **factory_kwargs) 
             if self.rope is not None else
-            MultiheadAttention(d_model=d_model, num_heads=num_heads) 
+            MultiheadAttention(d_model=d_model, num_heads=num_heads, **factory_kwargs) 
         )
         self.ln2 = RMSNorm(d_model=d_model)
         self.ffn = SwiGLU(d_model=d_model, d_ff=d_ff)
@@ -46,8 +46,8 @@ class TransformerBlock(nn.Module):
         self,
         x: torch.Tensor
     ) -> torch.Tensor:
-        x += self.attn(x=self.ln1(x), is_causal=True)
-        x += self.ffn(x=self.ln2(x))
+        x = x + self.attn(x=self.ln1(x), is_causal=True)
+        x = x + self.ffn(x=self.ln2(x))
         return x
 
 
@@ -60,7 +60,9 @@ class TransformerLM(nn.Module):
         num_layers: int,
         num_heads: int,
         d_ff: int,
-        rope_theta: float
+        rope_theta: float,
+        device: torch.device | None = None,
+        dtype: torch.dtype | None = None
     ) -> None:
         super().__init__()
         self.vocab_size = vocab_size
@@ -72,7 +74,13 @@ class TransformerLM(nn.Module):
         self.rope_theta = rope_theta
         self.token_embeddings = Embedding(vocab_size, d_model)
         self.layers = nn.ModuleList([
-            TransformerBlock(d_model=d_model, num_heads=num_heads, d_ff=d_ff, theta=rope_theta, max_seq_len=context_length)
+            TransformerBlock(d_model=d_model, 
+                             num_heads=num_heads, 
+                             d_ff=d_ff, 
+                             theta=rope_theta, 
+                             max_seq_len=context_length,
+                             device=device,
+                             dtype=dtype)
             for _ in range(num_layers)
         ])
         self.ln_final = RMSNorm(d_model)

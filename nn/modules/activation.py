@@ -51,21 +51,21 @@ class MultiheadAttention(nn.Module):
         dtype: torch.dtype | None = None
     ) -> None:
         assert d_model > 0 and num_heads > 0
-        factory_kwargs = {"device": device, "dtype": dtype}
+        self.factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
         self.d_k = d_model // num_heads
         self.theta = theta
         self.max_seq_len = max_seq_len
         if self.theta is not None:
             assert rope is None
-            rope = RotaryPositionalEmbedding(theta, self.d_k, max_seq_len, **factory_kwargs)
+            rope = RotaryPositionalEmbedding(theta, self.d_k, max_seq_len, **self.factory_kwargs)
         self.rope = rope
         self.d_model = d_model
         self.num_heads = num_heads
-        self.q_proj = Linear(d_model, d_model, **factory_kwargs)
-        self.k_proj = Linear(d_model, d_model, **factory_kwargs)
-        self.v_proj = Linear(d_model, d_model, **factory_kwargs)
-        self.output_proj = Linear(d_model, d_model, **factory_kwargs)
+        self.q_proj = Linear(d_model, d_model, **self.factory_kwargs)
+        self.k_proj = Linear(d_model, d_model, **self.factory_kwargs)
+        self.v_proj = Linear(d_model, d_model, **self.factory_kwargs)
+        self.output_proj = Linear(d_model, d_model, **self.factory_kwargs)
 
     def forward(
         self,
@@ -85,7 +85,7 @@ class MultiheadAttention(nn.Module):
             # [batch_size, num_heads, seq_len, d_k]
             q = self.rope(x=q, token_positions=token_positions)
             k = self.rope(x=k, token_positions=token_positions)
-        output = scaled_dot_product_attention(q=q, k=k, v=v, is_causal=True)
+        output = scaled_dot_product_attention(q=q, k=k, v=v, is_causal=True, **self.factory_kwargs)
         # [batch_size, seq_len, d_model]
         output = output.transpose(-2, -3).contiguous().view(*dims, -1)
         output = self.output_proj(output)

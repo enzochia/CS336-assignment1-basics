@@ -1,7 +1,12 @@
 import os
 import logging
 import torch
+import setuptools
+import wandb
 from nn.modules import TransformerLM
+from config import Config
+from cs336_basics.utils.data import Dataset
+from nn.functional import cross_entropy
 from optim import AdamW
 from typing import BinaryIO, IO
 
@@ -26,12 +31,14 @@ def save_checkpoint(
     out: str | os.PathLike | BinaryIO | IO[bytes],
     epoch: int = 0
 ) -> None:
+    checkpoint_dir = os.path.join(out, f"iter_{iteration}")
+    os.makedirs(checkpoint_dir, exist_ok=True) 
     torch.save(
         {"model": model.state_dict(),
          "optimizer": optimizer.state_dict(),
          "iter": iteration,
          "epoch": epoch},
-        out
+        checkpoint_dir
     )
 
 
@@ -44,3 +51,31 @@ def load_checkpoint(
     model.load_state_dict(full_state_dict["model"])
     optimizer.load_state_dict(full_state_dict["optimizer"])
     return full_state_dict["iter"]
+
+
+def eval(model: torch.nn.Module,
+         optimizer: torch.optim.Optimizer,
+         conf: Config,
+         dataset: Dataset,
+         iter_num: int,
+         lr: float,
+         epoch: int = 0) -> None:
+    total_loss = 0
+    for _ in range(conf.eval_iters):
+        token_seq, next_token_seq = dataset.get_batch("valid")
+        token_seq = token_seq.to(conf.device)
+        next_token_seq = next_token_seq.to(conf.device)
+        with torch.no_grad():
+            logits = model(token_seq)
+            total_loss += cross_entropy(logits, next_token_seq).item()
+    total_loss /= conf.eval_iters
+    # logging.info(f"Iter: {iter_num}, validation loss: {total_loss}, lr: {lr}.")
+    if conf.wandb_logging:
+        wandb.log({"iter": iter_num, "lr": lr, "val_loss": total_loss})
+    if ((iter_num > 0) and 
+        (iter_num % conf.save_checkpoint_every == 0)):
+        save_checkpoint(model=model, 
+                        optimizer=optimizer, 
+                        iteration=iter_num,
+                        out=conf.checkpoint_path,
+                        epoch=epoch)

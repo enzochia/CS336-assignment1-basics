@@ -14,9 +14,9 @@ logging.basicConfig(
 
 if __name__ == "__main__":
     BPE_DIR = "data/ts/"
-    INPUT_FILE = "data/TinyStoriesV2-GPT4-train.txt"
+    # INPUT_FILE = "data/TinyStoriesV2-GPT4-train.txt"
     # INPUT_FILE = "data/TinyStoriesV2-GPT4-debug.txt"
-    # INPUT_FILE = "data/TinyStoriesV2-GPT4-valid.txt"
+    INPUT_FILE = "data/TinyStoriesV2-GPT4-valid.txt"
 
     VOCAB_PATH = os.path.join(BPE_DIR, "vocab.json")
     MERGES_PATH = os.path.join(BPE_DIR, "merges.txt")
@@ -48,6 +48,9 @@ if __name__ == "__main__":
 
     # logging.info(f"################# Read from output .bin file and decode to validate. #################")
     # encoded_tokens_from_file = np.memmap(ENCODED_OUTPUT_FILE, dtype=np.uint16, mode='r')
-    # sample_ids = encoded_tokens_from_file[:1500].tolist()
+    # sample_ids = encoded_tokens_from_file[-500:].tolist()
     # decoded_text_sample = tokenizer.decode(sample_ids)
     # logging.info(decoded_text_sample)
+
+    ENDOFTEXT = "<|endoftext|>"
+    print(f"idx for {ENDOFTEXT}: {tokenizer.inverse_vocab[ENDOFTEXT.encode("utf-8")]}")

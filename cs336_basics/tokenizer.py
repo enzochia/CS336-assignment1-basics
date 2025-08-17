@@ -1,3 +1,5 @@
+# uv run -m cs336_basics.runs.tokenize 
+
 import os
 import regex as re
 from typing import BinaryIO, Dict, List, Tuple, Iterable

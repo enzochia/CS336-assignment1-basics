@@ -5,7 +5,7 @@ from typing import Optional
 
 def softmax(x: torch.Tensor,
             dim: int = -1) -> torch.Tensor:
-    x -= torch.max(x, dim=dim, keepdim=True)[0]
+    x = x - torch.max(x, dim=dim, keepdim=True)[0]
     x_exp = torch.exp(x)
     x_softmax = x_exp / torch.sum(x_exp, dim=dim, keepdim=True)
     return x_softmax
@@ -16,7 +16,9 @@ def scaled_dot_product_attention(
     k: torch.Tensor,
     v: torch.Tensor,
     attn_mask: Optional[torch.Tensor] | None = None,
-    is_causal: Optional[bool] = False
+    is_causal: Optional[bool] = False,
+    device: torch.device | None = None,
+    dtype: torch.dtype | None = None
 ) -> torch.Tensor:
     """
     Input
@@ -37,11 +39,11 @@ def scaled_dot_product_attention(
     if is_causal:
         if attn_mask is not None:
             raise ValueError(f"causal_mask is generated only when attn_mask is None.")
-        causal_mask = torch.ones(seq_len, seq_len).tril(diagonal=0)
-        q_k_scaled_dot_prod.masked_fill_(causal_mask.logical_not(), float("-inf"))
+        causal_mask = torch.ones(seq_len, seq_len).tril(diagonal=0).to(device)
+        q_k_scaled_dot_prod = q_k_scaled_dot_prod.masked_fill(causal_mask.logical_not(), float("-inf"))
 
     if attn_mask is not None:
-        q_k_scaled_dot_prod.masked_fill_(attn_mask.logical_not(), float("-inf"))
+        q_k_scaled_dot_prod = q_k_scaled_dot_prod.masked_fill(attn_mask.logical_not(), float("-inf"))
     
     # [batch_size, ..., seq_len, seq_len]
     attn_weight = softmax(q_k_scaled_dot_prod)
@@ -53,7 +55,7 @@ def scaled_dot_product_attention(
 def _logsumexp(input: torch.Tensor) -> torch.Tensor:
     # [..., 1]
     input_max, _ = torch.max(input, dim=-1, keepdim=True)
-    input -= input_max
+    input = input - input_max
     return input_max + torch.log(torch.sum(torch.exp(input), dim=-1, keepdim=True))
 
 def cross_entropy(input: torch.Tensor,
