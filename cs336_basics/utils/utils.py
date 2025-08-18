@@ -32,14 +32,16 @@ def save_checkpoint(
     epoch: int = 0
 ) -> None:
     checkpoint_dir = os.path.join(out, f"iter_{iteration}")
+    checkpoint_path = os.path.join(checkpoint_dir, "checkpoint.pt")
     os.makedirs(checkpoint_dir, exist_ok=True) 
     torch.save(
         {"model": model.state_dict(),
          "optimizer": optimizer.state_dict(),
          "iter": iteration,
          "epoch": epoch},
-        checkpoint_dir
+        checkpoint_path
     )
+    logging.info(f"Saved model to {checkpoint_path}")
 
 
 def load_checkpoint(
@@ -47,9 +49,11 @@ def load_checkpoint(
     model: torch.nn.Module,
     optimizer: torch.optim.Optimizer
 ) -> None:
+    src = os.path.join(src, "checkpoint.pt")
     full_state_dict = torch.load(src)
     model.load_state_dict(full_state_dict["model"])
     optimizer.load_state_dict(full_state_dict["optimizer"])
+    logging.info(f"Loaded model from {src}")
     return full_state_dict["iter"]
 
 
@@ -69,11 +73,12 @@ def eval(model: torch.nn.Module,
             logits = model(token_seq)
             total_loss += cross_entropy(logits, next_token_seq).item()
     total_loss /= conf.eval_iters
-    # logging.info(f"Iter: {iter_num}, validation loss: {total_loss}, lr: {lr}.")
+    logging.info(f"Iter: {iter_num}, validation loss: {total_loss}, lr: {lr}.")
     if conf.wandb_logging:
         wandb.log({"iter": iter_num, "lr": lr, "val_loss": total_loss})
     if ((iter_num > 0) and 
-        (iter_num % conf.save_checkpoint_every == 0)):
+        ((iter_num % conf.save_checkpoint_every == 0) or 
+         (iter_num == (conf.total_iters - 1)))):
         save_checkpoint(model=model, 
                         optimizer=optimizer, 
                         iteration=iter_num,

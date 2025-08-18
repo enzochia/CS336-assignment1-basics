@@ -59,7 +59,9 @@ optimizer = AdamW(
 )
 
 if conf.init_from == "pretrained":
-    iter_num = load_checkpoint(model, optimizer, conf.iter_from_path)
+    iter_num = load_checkpoint(src=conf.init_from_path, 
+                               model=model, 
+                               optimizer=optimizer)
 
 start_time = time.time()
 pbar = tqdm(range(conf.total_iters), desc=" steps")

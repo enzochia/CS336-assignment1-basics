@@ -23,7 +23,7 @@
     --save_checkpoint_every 2400 \
     --checkpoint_path data/ckpt/pretrained/ \
     --init_from scratch \
-    --init_from_path data/ckpt/ \
+    --init_from_path data/ckpt/pretrained/ \
     --sampling_mode random 
     # --wandb_logging \
     # --wandb_project cs336-hw1-enzojia \
