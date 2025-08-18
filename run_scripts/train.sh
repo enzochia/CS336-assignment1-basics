@@ -1,4 +1,4 @@
- uv run --active -m cs336_basics.runs.train \
+ uv run --active -m run_scripts.train \
     --data_path data/ts/encoded/ \
     --context_length 256 \
     --batch_size 64 \
@@ -9,7 +9,7 @@
     --num_layers 4 \
     --rope_theta 1e4 \
     --activation_function SwiGLU \
-    --target_token_count 81920000 \
+    --target_token_count 409600000 \
     --max_learning_rate 1e-3 \
     --min_learning_rate 1e-6 \
     --grad_clip_max_l2_norm 1 \
@@ -18,12 +18,12 @@
     --adamw_betas 0.9 0.95 \
     --optim_lr 1e-3 \
     --log_every 1 \
-    --eval_every 1200 \
+    --eval_every 4800 \
     --eval_iters 10 \
-    --save_checkpoint_every 2400 \
+    --save_checkpoint_every 12000 \
     --checkpoint_path data/ckpt/pretrained/ \
-    --init_from scratch \
-    --init_from_path data/ckpt/pretrained/ \
+    --init_from pretrained \
+    --init_from_path data/ckpt/pretrained/iter_2400/ \
     --sampling_mode random 
     # --wandb_logging \
     # --wandb_project cs336-hw1-enzojia \

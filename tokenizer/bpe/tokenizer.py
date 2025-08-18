@@ -4,8 +4,8 @@ import os
 import regex as re
 from typing import BinaryIO, Dict, List, Tuple, Iterable
 from collections.abc import Iterator
-from cs336_basics.utils.constants import PAT_STR_GPT2, ENDOFTEXT, SPECIAL_TOKENS
-from cs336_basics.train_bpe import _add_bytes_in_tuple, read_and_convert_bpe_vocab_and_merges
+from utils import PAT_STR_GPT2, ENDOFTEXT, SPECIAL_TOKENS
+from .bpe_train import _add_bytes_in_tuple, read_and_convert_bpe_vocab_and_merges
 
 class Tokenizer:
     def __init__(self, 

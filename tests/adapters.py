@@ -8,10 +8,9 @@ from jaxtyping import Float, Int
 import numpy.typing as npt
 import torch
 from torch import Tensor
-from cs336_basics.train_bpe import train_bpe
-from cs336_basics.tokenizer import Tokenizer
-from cs336_basics.utils.data import get_batch
-from cs336_basics.utils.utils import save_checkpoint, load_checkpoint
+from tokenizer import train_bpe, Tokenizer
+from dataset import get_batch
+from utils import save_checkpoint, load_checkpoint
 
 from nn import *
 from optim import *

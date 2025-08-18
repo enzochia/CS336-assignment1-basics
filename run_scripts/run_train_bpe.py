@@ -2,8 +2,15 @@ import os
 import time
 import json
 import logging
-from cs336_basics.train_bpe import *
-from cs336_basics.utils.utils import log_runtime
+import heapq
+from tokenizer.bpe.bpe_train import *
+from utils import (
+    PAT_STR_GPT2, 
+    ENDOFTEXT, 
+    SPECIAL_TOKENS,
+    log_runtime
+)
+
 
 logging.basicConfig(
     level=logging.INFO,

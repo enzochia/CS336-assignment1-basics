@@ -1,6 +1,7 @@
+import os
 import numpy as np
 from tqdm import tqdm
-from cs336_basics.tokenizer import *
+from .tokenizer import Tokenizer
 
 def get_token_count(INPUT_FILE:  str | os.PathLike,
                     tokenizer: Tokenizer,
