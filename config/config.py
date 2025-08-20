@@ -11,13 +11,15 @@ logging.basicConfig(
 
 @dataclass
 class Config:
-    data_path: str
-    batch_size: int
     device: Optional[torch.device] = field(default = torch.device("cuda") if torch.cuda.is_available() else 
                                            (torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")))
 
+    # Data parameters
+    data_path: Optional[str] = field(default="data/ts/encoded/")
+    
     # Training parameters
-    target_token_count: Optional[int] = field(default=None)
+    batch_size: Optional[int] = field(default=64)
+    target_token_count: Optional[int] = field(default=40960000)
     total_iters: Optional[int] = field(default=None)
     warmup_iters: Optional[int] = field(default=None)
     cosine_cycle_iters: Optional[int] = field(default=None)
@@ -59,7 +61,17 @@ class Config:
     init_from_path: Optional[str] = field(default="")
 
     # Data loading parameters
-    sampling_mode: Optional[str] = "random"
+    sampling_mode: Optional[str] = field(default="random")
+
+    # Generator parameters
+    max_new_tokens: Optional[int] = field(default=512)
+    temperature: Optional[float] = field(default=1)
+    top_p: Optional[float] = field(default=1)
+
+    # Tokenizer parameters
+    tokenizer_dir: Optional[str] = field(default="data/ts/")
+
+
 
     def __post_init__(self):
         if self.total_iters is None:

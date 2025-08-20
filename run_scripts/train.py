@@ -59,12 +59,12 @@ optimizer = AdamW(
 )
 
 if conf.init_from == "pretrained":
-    iter_num = load_checkpoint(src=conf.init_from_path, 
-                               model=model, 
-                               optimizer=optimizer)
+    iter_start_num = load_checkpoint(src=conf.init_from_path, 
+                                     model=model, 
+                                     optimizer=optimizer)
 
 start_time = time.time()
-pbar = tqdm(range(conf.total_iters), desc=" steps")
+pbar = tqdm(range(iter_start_num, conf.total_iters), desc=" steps")
 for iter_num in pbar:
     optimizer.zero_grad()
     token_seq, next_token_seq = dataset.get_batch("train")

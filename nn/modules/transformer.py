@@ -5,6 +5,7 @@ from .normalization import RMSNorm
 from .position_embeddings import RotaryPositionalEmbedding
 from .activation import MultiheadAttention, SwiGLU
 from .sparse import Embedding
+from nn.functional import softmax
 
 
 class TransformerBlock(nn.Module):
@@ -98,6 +99,46 @@ class TransformerLM(nn.Module):
         x = self.lm_head(x)
         return x
 
+    @torch.no_grad()
+    def generate(
+        self,
+        prompt_tokens: torch.Tensor,
+        max_new_tokens: int,
+        temperature: float = 1.0,
+        top_p: float = 1.0,
+        eos_token_id: int = 256
+    ) -> torch.Tensor:
+        # does it work for the cutomized RMSNorm?
+        self.eval()
+        token_seq = prompt_tokens
+        for _ in range(max_new_tokens):
+            token_seq = token_seq[..., -self.context_length:]
+            # [batch_size, ..., vocab_size]
+            logit_tensor = self(token_seq)[..., -1, :] / temperature
+            prob_tensor = softmax(logit_tensor, dim=-1)
+            if top_p < 1:
+                # [batch_size, ..., vocab_size]
+                sorted_prob_tensor, sorted_idx = torch.sort(prob_tensor, dim=-1, descending=True)
+                # [batch_size, ..., vocab_size]
+                cumulative_prob_tensor = torch.cumsum(sorted_prob_tensor, dim=-1)
+                # [batch_size, ..., vocab_size], bool
+                remove_bool_tensor = cumulative_prob_tensor > top_p
+                remove_bool_tensor[..., 1:] = remove_bool_tensor[..., :-1].clone()
+                remove_bool_tensor[..., 0] = False
+                # [batch_size, ..., vocab_size], bool
+                mask = torch.zeros_like(prob_tensor, dtype=torch.bool).scatter_(
+                    dim=-1, index=sorted_idx, src=remove_bool_tensor
+                )
+                prob_tensor[mask] = 0
+                prob_tensor /= prob_tensor.sum(dim=-1, keepdim=True)
+            generated_token = torch.multinomial(prob_tensor, num_samples=1)
+            token_seq = torch.cat((token_seq, generated_token), dim=-1)
+            # TODO: Current solution only works for batch_size 1
+            if (((len(token_seq.size()) == 1) or
+                 (token_seq.size(0) == 1)) and
+                generated_token.item() == eos_token_id):
+                break
+        return token_seq
 
 
 
