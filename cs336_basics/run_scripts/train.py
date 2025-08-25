@@ -6,8 +6,6 @@ import wandb
 from dataclasses import asdict
 from transformers import HfArgumentParser
 from tqdm import tqdm
-# from cs336_basics.tokenizer import *
-# from tokenizer import get_token_count, encode_and_dump
 from utils import log_runtime, eval, load_checkpoint
 from dataset import Dataset
 from nn import TransformerLM, cross_entropy, gradient_clipping
