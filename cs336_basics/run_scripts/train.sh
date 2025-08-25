@@ -1,4 +1,4 @@
- uv run --active -m run_scripts.train \
+ uv run --active -m cs336_basics.run_scripts.train \
     --data_path data/ts/encoded/ \
     --context_length 256 \
     --batch_size 64 \
@@ -23,7 +23,7 @@
     --eval_iters 10 \
     --save_checkpoint_every 30000 \
     --checkpoint_path data/ckpt/pretrained/ \
-    --init_from pretrained \
+    --init_from scratch \
     --init_from_path data/ckpt/pretrained/iter_24000/ \
     --sampling_mode random 
     # --wandb_logging \
@@ -31,6 +31,8 @@
     # --wandb_run_name test-001
    #  --warmup_iters 100 \
    #  --cosine_cycle_iters 800 \
+   #  --init_from pretrained \
+   #  --init_from_path data/ckpt/pretrained/iter_24000/ \
 
 
 

@@ -1,11 +1,13 @@
+# uv run --active -m cs336_basics.run_scripts.tokenize 
+
 import os
 import json
 import numpy as np
 import time
 import logging
 from tqdm import tqdm
-from tokenizer import *
-from utils import (
+from cs336_basics.tokenizer import *
+from cs336_basics.utils import (
     SPECIAL_TOKENS,
     log_runtime
 )

@@ -3,11 +3,11 @@ import logging
 import torch
 import setuptools
 import wandb
-from nn.modules import TransformerLM
-from config import Config
-from dataset import Dataset
-from nn.functional import cross_entropy
-from optim import AdamW
+from cs336_basics.nn.modules import TransformerLM
+from cs336_basics.config import Config
+from cs336_basics.dataset import Dataset
+from cs336_basics.nn.functional import cross_entropy
+from cs336_basics.optim import AdamW
 from typing import BinaryIO, IO
 
 logging.basicConfig(

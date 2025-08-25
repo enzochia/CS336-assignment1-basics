@@ -1,4 +1,4 @@
- uv run --active -m run_scripts.generate \
+ uv run --active -m cs336_basics.run_scripts.generate \
     --context_length 256 \
     --vocab_size 10000 \
     --d_model 512 \

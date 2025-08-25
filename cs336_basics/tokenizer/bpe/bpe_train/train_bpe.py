@@ -8,7 +8,7 @@ from functools import lru_cache
 from tqdm import tqdm
 from typing import List, Dict, Tuple, BinaryIO, Union, Any
 from collections import Counter
-from utils import PAT_STR_GPT2, ENDOFTEXT, SPECIAL_TOKENS
+from cs336_basics.utils import PAT_STR_GPT2, ENDOFTEXT, SPECIAL_TOKENS
 from .train_bpe_utils import (
     bytes_to_unicode, 
     convert_and_save_bpe_vocab_and_merges,

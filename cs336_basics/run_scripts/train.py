@@ -6,11 +6,11 @@ import wandb
 from dataclasses import asdict
 from transformers import HfArgumentParser
 from tqdm import tqdm
-from utils import log_runtime, eval, load_checkpoint
-from dataset import Dataset
-from nn import TransformerLM, cross_entropy, gradient_clipping
-from optim import AdamW, get_lr_cosine_schedule
-from config import Config
+from cs336_basics.utils import log_runtime, eval, load_checkpoint
+from cs336_basics.dataset import Dataset
+from cs336_basics.nn import TransformerLM, cross_entropy, gradient_clipping
+from cs336_basics.optim import AdamW, get_lr_cosine_schedule
+from cs336_basics.config import Config
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,6 +56,7 @@ optimizer = AdamW(
     weight_decay=conf.optim_weight_decay
 )
 
+iter_start_num = 0
 if conf.init_from == "pretrained":
     iter_start_num = load_checkpoint(src=conf.init_from_path, 
                                      model=model, 

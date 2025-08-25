@@ -1,10 +1,12 @@
+# uv run --active -m cs336_basics.run_scripts.run_train_bpe
+
 import os
 import time
 import json
 import logging
 import heapq
-from tokenizer.bpe.bpe_train import *
-from utils import (
+from cs336_basics.tokenizer.bpe.bpe_train import *
+from cs336_basics.utils import (
     PAT_STR_GPT2, 
     ENDOFTEXT, 
     SPECIAL_TOKENS,

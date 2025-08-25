@@ -3,7 +3,7 @@ import torch.nn as nn
 from typing import Optional
 from .linear import Linear
 from .position_embeddings import RotaryPositionalEmbedding
-from nn.functional import scaled_dot_product_attention
+from cs336_basics.nn.functional import scaled_dot_product_attention
 
 class SwiGLU(nn.Module):
     def __init__(

@@ -5,7 +5,7 @@ from .normalization import RMSNorm
 from .position_embeddings import RotaryPositionalEmbedding
 from .activation import MultiheadAttention, SwiGLU
 from .sparse import Embedding
-from nn.functional import softmax
+from cs336_basics.nn.functional import softmax
 
 
 class TransformerBlock(nn.Module):

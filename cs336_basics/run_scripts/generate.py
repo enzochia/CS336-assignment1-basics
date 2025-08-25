@@ -4,18 +4,18 @@ import logging
 import torch
 from dataclasses import asdict
 from transformers import HfArgumentParser
-from utils import (
+from cs336_basics.utils import (
     log_runtime, 
     load_checkpoint,
     SPECIAL_TOKENS,
     ENDOFTEXT
 )
-from nn import (
+from cs336_basics.nn import (
     TransformerLM, 
     softmax
 )
-from config import Config
-from tokenizer import Tokenizer
+from cs336_basics.config import Config
+from cs336_basics.tokenizer import Tokenizer
 
 logging.basicConfig(
     level=logging.INFO,
