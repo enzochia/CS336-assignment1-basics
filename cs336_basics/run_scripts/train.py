@@ -8,7 +8,7 @@ from transformers import HfArgumentParser
 from tqdm import tqdm
 from cs336_basics.utils import log_runtime, eval, load_checkpoint
 from cs336_basics.dataset import Dataset
-from cs336_basics.nn import TransformerLM, cross_entropy, gradient_clipping
+from cs336_basics.nn import TransformerLM, cross_entropy, clip_gradient
 from cs336_basics.optim import AdamW, get_lr_cosine_schedule
 from cs336_basics.config import Config
 
@@ -69,7 +69,7 @@ for iter_num in pbar:
     token_seq, next_token_seq = dataset.get_batch("train")
     loss = cross_entropy(model(token_seq), next_token_seq)
     loss.backward()
-    gradient_clipping(model.parameters(), conf.grad_clip_max_l2_norm)
+    clip_gradient(model.parameters(), conf.grad_clip_max_l2_norm)
     lr = get_lr_cosine_schedule(
         it=iter_num,
         max_learning_rate=conf.max_learning_rate,

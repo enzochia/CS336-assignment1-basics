@@ -2,7 +2,7 @@ import math
 import torch
 from collections.abc import Iterable
 
-def gradient_clipping(parameters: Iterable[torch.nn.Parameter], 
+def clip_gradient(parameters: Iterable[torch.nn.Parameter], 
                       max_l2_norm: float,
                       eps: float = 1e-6) -> None:
     total_norm = math.sqrt(
