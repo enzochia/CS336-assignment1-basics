@@ -39,7 +39,7 @@ def scaled_dot_product_attention(
     if is_causal:
         if attn_mask is not None:
             raise ValueError(f"causal_mask is generated only when attn_mask is None.")
-        causal_mask = torch.ones(seq_len, seq_len).tril(diagonal=0).to(device)
+        causal_mask = torch.ones(seq_len, seq_len, device=q.device, dtype=torch.bool).tril(diagonal=0)
         q_k_scaled_dot_prod = q_k_scaled_dot_prod.masked_fill(causal_mask.logical_not(), float("-inf"))
 
     if attn_mask is not None:
