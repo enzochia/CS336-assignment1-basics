@@ -114,6 +114,7 @@ def is_subtuple(subtuple: Tuple[bytes],
                 break
         if is_sub:
             sub_tuple_idx_list.append(idx)
+            # TODO #1: make both conditions use idx += 1, to be consistent with other parts of counting in this impl
             idx += len(subtuple)
         else:
             idx += 1
@@ -204,7 +205,10 @@ def train_bpe(input_path: str,
         for pretoken, pretoken_freq in pretoken_counter.items():
             sub_tuple_idx_list = is_subtuple(max_pair, pretoken)
             if sub_tuple_idx_list:
+                # TODO #1: investigate: this is not consitent with _add_bytes_in_tuple impl
                 pair_freq[max_pair] -= len(sub_tuple_idx_list) * pretoken_freq
+                # TODO #2: move this pop operation after this loop would make the code more 
+                # robust to potential bugs in counting
                 if pair_freq[max_pair] == 0:
                     pair_freq.pop(max_pair)
                 new_pretoken, \
